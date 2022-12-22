@@ -1,0 +1,378 @@
+---
+title: "Final Exam FlexDashboard Kel A"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+    theme: yeti
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+# Importing libraries
+library(flexdashboard)
+library(tidyverse)
+library(highcharter)
+library(gt)
+library(htmltools)
+library(viridis)
+library(DT)
+library(ggplot2)
+library(sunburstR)
+library(lubridate)
+library(plotly)
+library(ggplot2)
+```
+
+```{r}
+# This is going to be a datatable
+cust <- read.csv("Customers.csv", sep = ",")
+ord <- read.csv("Orders.csv", sep = ",")
+orddet <- read.csv("OrderDetails.csv", sep = ",")
+emp <- read.csv("Employees.csv")
+pro <- read.csv("Products.csv", sep = ",")
+ship <- read.csv("Shippers.csv", sep = ",")
+cat <- read.csv("Categories.csv", sep = ",")
+supp <- read.csv("Suppliers.csv")
+```
+
+
+Table {data-orientation=rows}
+=======================================================================
+
+## Column {.tabset .tabset-fade data-height=520}
+-----------------------------------------------------------------------
+
+### Customers {data-height=520}
+
+```{r}
+datacust <- merge(
+  x = cust,
+  y = ord,
+  by = "CustomerID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+datacust <- merge(
+  x = datacust,
+  y = orddet,
+  by = "OrderID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+datacust <- merge(
+  x = datacust,
+  y = pro,
+  by = "ProductID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+datatable(datacust, 
+          options=list(scrollX=TRUE),
+          caption = htmltools::tags$caption(
+    style = 'caption-side: bottom; text-align: center;',
+    'Table: ', htmltools::em('Information of Customers')
+  ))
+```
+
+
+### Suppliers {data-height=520}
+
+```{r}
+datasup <- merge(
+  x = supp,
+  y = pro,
+  by = "SupplierID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+datasup <- merge(
+  x = datasup,
+  y = orddet,
+  by = "ProductID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+datatable(datasup, 
+          options=list(scrollX=TRUE),
+          caption = htmltools::tags$caption(
+    style = 'caption-side: bottom; text-align: center;',
+    'Table: ', htmltools::em('Information of Suppliers')
+  ))
+```
+
+
+### Employees {data-height=520}
+
+```{r}
+dataemp <- merge(
+  x = emp,
+  y = ord,
+  by = "EmployeeID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+dataemp <- merge(
+  x = dataemp,
+  y = orddet,
+  by = "OrderID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+dataemp <- merge(
+  x = dataemp,
+  y = pro,
+  by = "ProductID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+datatable(dataemp, 
+          options=list(scrollX=TRUE),
+          caption = htmltools::tags$caption(
+    style = 'caption-side: bottom; text-align: center;',
+    'Table: ', htmltools::em('Information of Employees')
+  ))
+```
+
+
+### Shippers {data-height=520}
+
+```{r}
+dataship <- merge(
+  x = ord,
+  y = orddet,
+  by = "OrderID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+dataship <- merge(
+  x = dataship,
+  y = ship,
+  by = "ShipperID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+datatable(dataship, 
+          options=list(scrollX=TRUE),
+          caption = htmltools::tags$caption(
+    style = 'caption-side: bottom; text-align: center;',
+    'Table: ', htmltools::em('Information of Shippers')
+  ))
+```
+
+
+### Categories {data-height=520}
+
+```{r}
+datacat <- merge(
+  x = datacust,
+  y = cat,
+  by = "CategoryID",
+  all.x = TRUE,
+  all.y = TRUE
+)
+
+datatable(datacat, 
+          options=list(scrollX=TRUE),
+          caption = htmltools::tags$caption(
+    style = 'caption-side: bottom; text-align: center;',
+    'Table: ', htmltools::em('Information of Catagories')
+  ))
+```
+
+
+
+Customer-chart {data-orientation=rows}
+=======================================================================
+
+
+## Column {.tabset .tabset-fade data-height=520}
+-----------------------------------------------------------------------
+
+### Average Purchase {data-width=1200}
+
+```{r fig.height=5}
+custom_colors <- viridis::turbo(n = 15)
+
+datacust %>% 
+  group_by(CustomerName) %>% 
+  summarise(Purchase = mean(Quantity*Price)) %>% 
+  arrange(desc(Purchase)) %>% 
+  head(15) %>% 
+  hchart('column', hcaes(x = CustomerName, y = Purchase,color = custom_colors)) %>%   hc_add_theme(hc_theme_google()) %>% 
+  hc_tooltip(pointFormat = '<b>Average Purchase: </b> {point.y} <br>') %>% 
+  hc_title(text = 'Most Average of Customer Purchase',
+           style = list(fontSize = '25px', fontWeight = 'bold')) %>% 
+  hc_subtitle(text = 'By Money that Customer Spend in our Store',
+              style = list(fontSize = '16px')) %>% 
+  hc_credits(enabled = TRUE, text = '@diyasarya')
+```
+
+### Weekly Sold {data-width=1200}
+
+```{r fig.height=5}
+theme_set(theme_minimal())
+topquan <- datacust %>%
+  group_by(OrderDate) %>%
+  summarise(Quantity = sum(Quantity)) %>%
+  arrange(OrderDate) 
+
+hc <- topquan %>%
+  hchart('line', hcaes(x = OrderDate, y = Quantity)) %>%
+  hc_add_theme(hc_theme_google()) %>% 
+  hc_tooltip(pointFormat = '<b>Number of Quantity: </b> {point.y} <br>') %>% 
+  hc_title(text = 'Weekly Product Sold',
+           style = list(fontSize = '25px', fontWeight = 'bold')) %>% 
+  hc_subtitle(text = 'By Number of Quantity',
+              style = list(fontSize = '16px')) %>% 
+  hc_credits(enabled = TRUE, text = '@diyasarya')
+hc
+```
+
+
+Supplier-chart {data-orientation=rows}
+=======================================================================
+
+
+## Column {.tabset .tabset-fade data-height=520}
+-----------------------------------------------------------------------
+
+### Most Required Suppliers {data-width=1200}
+
+```{r fig.height=5}
+custom_colors <- viridis::turbo(n = 15)
+
+datasup %>% 
+  group_by(SupplierName) %>% 
+  summarise(Quantity = sum(Quantity)) %>% 
+  arrange(desc(Quantity)) %>% 
+  head(15) %>% 
+  hchart('column', hcaes(x = SupplierName, y = Quantity,color = custom_colors)) %>%   hc_add_theme(hc_theme_google()) %>% 
+  hc_tooltip(pointFormat = '<b>Number of Reviews: </b> {point.y} <br>') %>% 
+  hc_title(text = 'Most Required Suppliers',
+           style = list(fontSize = '25px', fontWeight = 'bold')) %>% 
+  hc_subtitle(text = 'By Number of Quantity',
+              style = list(fontSize = '16px')) %>% 
+  hc_credits(enabled = TRUE, text = '@sausanramadhani')
+```
+
+
+### Most Suppliers Country {data-width=1200}
+
+```{r fig.height=5}
+country_count <- datasup %>%
+  group_by(Country) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+sup1 <- country_count %>% 
+  ggplot(aes(x = count,
+             y = reorder(Country, count),
+             fill = count)) +
+  geom_col() +
+  scale_fill_gradient(low = "red", high = "black") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = 'Most Suppliers Country' ,
+       x = 'Suppliers Count',
+       y = NULL)
+ggplotly(sup1)
+```
+
+
+Employee-chart {data-orientation=rows}
+=======================================================================
+
+
+## Column {.tabset .tabset-fade data-height=520}
+-----------------------------------------------------------------------
+
+### Revenue Earn {data-width=1200}
+
+```{r fig.height=5}
+dataemp$revenue = dataemp$Quantity*dataemp$Price
+
+emp1 <- dataemp %>% 
+  group_by(FirstName) %>%
+  summarise(revenue = sum(revenue)) %>%
+  ggplot(aes(x = revenue,
+             y = reorder(FirstName, revenue),
+             color = revenue,
+             text = FirstName)) +
+  geom_segment(aes(x = 0, xend = revenue, yend = FirstName), size = 1) +
+  geom_point(size = 3) +
+  labs(x = 'Revenue',
+       y = NULL,
+       title = 'Revenue Earned by Each Employee') +
+  scale_color_gradient(low = "red", high = "black") +
+  scale_x_continuous(labels = scales::comma) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.margin = margin(r = 20))
+
+ggplotly(emp1, tooltip = "text")
+```
+
+
+### Average Purchase {data-width=1200}
+
+```{r fig.height=5}
+dataemp$revenue = dataemp$Quantity*dataemp$Price
+hc <- dataemp %>%
+  group_by(OrderDate) %>%
+  summarise(revenue = sum(revenue)) %>%
+  hchart('line', hcaes(x = OrderDate, y = revenue)) %>%
+  hc_add_theme(hc_theme_google()) %>% 
+  hc_tooltip(pointFormat = '<b>Number of Quantity: </b> {point.y} <br>') %>% 
+  hc_title(text = 'Weekly Revenue Earn',
+           style = list(fontSize = '25px', fontWeight = 'bold')) %>% 
+  hc_subtitle(text = 'By Number of Revenue',
+              style = list(fontSize = '16px')) %>% 
+  hc_credits(enabled = TRUE, text = '@sausanramadhani')
+hc
+```
+
+
+Shipper dan Categories-chart {data-orientation=rows}
+=======================================================================
+
+
+### Delivery Service Usage {data-width=600 data-height=510}
+
+```{r fig.height=5}
+# Colors
+custom_colors <- viridis::inferno(n = 3)
+
+# Most popular artists by weeks on board
+dataship %>% 
+  group_by(ShipperName) %>% 
+  summarise(Quantity = sum(Quantity)) %>% 
+  arrange(desc(Quantity)) %>% 
+  head() %>% 
+  hchart('pie', hcaes(x = ShipperName, y = Quantity, color = custom_colors),innerSize = 200) %>% 
+  hc_add_theme(hc_theme_google()) %>% 
+  hc_tooltip(pointFormat = '<b>Number of Delivery Service Usage: </b> {point.y} <br>') %>% 
+  hc_title(text = 'Most Popular Shipper',
+           style = list(fontSize = '25px', fontWeight = 'bold')) %>% 
+  hc_subtitle(text = 'By Number of Delivery Service Usage',
+              style = list(fontSize = '16px')) %>% 
+  hc_credits(enabled = TRUE, text = '@diyasarya')
+```
+
+### Most Categories {data-width=600 data-height=510}
+
+```{r}
+daa <- datacat %>%
+  select(CategoryName, Quantity) %>%
+  group_by(CategoryName) %>%
+  summarise(Quantity = sum(Quantity))
+sunburst(daa)
+```
